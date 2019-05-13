@@ -11,9 +11,7 @@ def mixup_cross_entropy_loss(input_, target, size_average=True):
     N = min(input_.shape[1], target.shape[1])
     input_ = input_[:,0:N,:]
     target = target[:,0:N,:]
-    input_ = torch.log(torch.nn.functional.softmax(input_, dim=1).clamp(1e-5, 1))
-    loss = - torch.sum(input_ * target)
-    return loss / input_.shape[0] if size_average else loss
+    return - (input_.log_softmax(dim=-1) * target).sum(dim=-1).mean()
 
 
 def onehot(targets, num_classes):
@@ -29,9 +27,8 @@ def mixup(inputs, targets, num_classes, alpha=2):
     perm = torch.randperm(s)
     perm_input = inputs[perm]
     perm_target = targets[perm]
-    
-    return  inputs.mul_(gamma).add_(1 - gamma, perm_input), targets.mul_(gamma).add_(1 - gamma, perm_target)
 
+    return  inputs.mul_(gamma).add_(1 - gamma, perm_input), targets.mul_(gamma).add_(1 - gamma, perm_target)
 
 
 def binary_cross_entropy(output, target):
