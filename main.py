@@ -162,17 +162,20 @@ def train(args, data_generator, model, optimizer, logging):
             for param_group in optimizer.param_groups:
                 param_group['lr'] *= 0.9
         
-        batch_x ,batch_y_dict['events'] = mixup(batch_x,batch_y_dict['events'], num_classes = 11)
+        
         batch_x = to_torch(batch_x, args.cuda)
         batch_y_dict = {
             'events':   to_torch(batch_y_dict['events'], args.cuda),
             'doas':  to_torch(batch_y_dict['doas'], args.cuda)
         }
+        #print(batch_y_dict['events'].shape) #32,200,11
+        batch_x ,batch_y_dict['events'] = mixup(batch_x,batch_y_dict['events'], num_classes = 11)
 
         # Forward
         model.train()
         output = model(batch_x)
-
+        #print(output['events'].shape) #32,192,11
+        
         # Loss
         seld_loss, _, _ = hybrid_regr_loss(output, batch_y_dict, args.task_type, loss_type=loss_type)
 
