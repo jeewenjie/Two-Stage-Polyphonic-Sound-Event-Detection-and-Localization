@@ -19,7 +19,7 @@ from tqdm import tqdm
 
 import evaluation
 import models
-from loss import hybrid_regr_loss
+from loss import hybrid_regr_loss, mixup
 from torchsummary import summary
 from utils.data_generator import DataGenerator
 from utils.utilities import (create_logging, doa_labels, event_labels,
@@ -161,7 +161,8 @@ def train(args, data_generator, model, optimizer, logging):
         if batch_idx % lr_interval == 0 and batch_idx > 30000:
             for param_group in optimizer.param_groups:
                 param_group['lr'] *= 0.9
-
+        
+        batch_x ,batch_y_dict['events'] = mixup(batch_x,batch_y_dict['events'], num_classes = 11)
         batch_x = to_torch(batch_x, args.cuda)
         batch_y_dict = {
             'events':   to_torch(batch_y_dict['events'], args.cuda),
@@ -171,7 +172,7 @@ def train(args, data_generator, model, optimizer, logging):
         # Forward
         model.train()
         output = model(batch_x)
-        
+
         # Loss
         seld_loss, _, _ = hybrid_regr_loss(output, batch_y_dict, args.task_type, loss_type=loss_type)
 
