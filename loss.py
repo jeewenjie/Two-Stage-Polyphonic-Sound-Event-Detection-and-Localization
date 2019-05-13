@@ -3,35 +3,35 @@ import pdb
 import torch
 import torch.nn.functional as F
 
+import numpy as np
+def mixup_cross_entropy_loss(input_, target, size_average=True):
 
-def mixup_cross_entropy_loss(input, target, size_average=True):
-
-    assert input.size() == target.size()
-    assert isinstance(input, Variable) and isinstance(target, Variable)
-    input = torch.log(torch.nn.functional.softmax(input, dim=1).clamp(1e-5, 1))
-    # input = input - torch.log(torch.sum(torch.exp(input), dim=1)).view(-1, 1)
-    loss = - torch.sum(input * target)
-    return loss / input.size()[0] if size_average else loss
+    #assert input.size() == target.size()
+    #assert isinstance(input, Variable) and isinstance(target, Variable)
+    N = min(input_.shape[1], target.shape[1])
+    input_ = input_[:,0:N,:]
+    target = target[:,0:N,:]
+    input_ = torch.log(torch.nn.functional.softmax(input_, dim=1).clamp(1e-5, 1))
+    loss = - torch.sum(input_ * target)
+    return loss / input_.shape[0] if size_average else loss
 
 
 def onehot(targets, num_classes):
 
-    assert isinstance(targets, torch.LongTensor)
-    return torch.zeros(targets.size()[0], num_classes).scatter_(1, targets.view(-1, 1), 1)
+    #assert isinstance(targets, torch.LongTensor)
+    return torch.zeros(targets.shape[0], num_classes).scatter_(1, targets.view(-1, 1), 1)
 
 
 def mixup(inputs, targets, num_classes, alpha=2):
 
-    s = inputs.size()[0]
-    weight = torch.Tensor(np.random.beta(alpha, alpha, s))
-    index = np.random.permutation(s)
-    x1, x2 = inputs, inputs[index, :, :, :]
-    y1, y2 = onehot(targets, num_classes), onehot(targets[index,], num_classes)
-    weight = weight.view(s, 1, 1, 1)
-    inputs = weight*x1 + (1-weight)*x2
-    weight = weight.view(s, 1)
-    targets = weight*y1 + (1-weight)*y2
-    return inputs, targets
+    s = inputs.shape[0]
+    gamma = np.random.beta(alpha, alpha)
+    perm = torch.randperm(s)
+    perm_input = inputs[perm]
+    perm_target = targets[perm]
+    
+    return  inputs.mul_(gamma).add_(1 - gamma, perm_input), targets.mul_(gamma).add_(1 - gamma, perm_target)
+
 
 
 def binary_cross_entropy(output, target):
@@ -69,7 +69,6 @@ def mean_error(output, target, mask, loss_type='MSE'):
 def hybrid_regr_loss(output_dict, target_dict, task_type, loss_type='MSE'):
     '''
     Hybrid loss for regression doa:
-
     Input:
         output_dict: predict dictionary
         target_dict: target dictionary
@@ -84,7 +83,7 @@ def hybrid_regr_loss(output_dict, target_dict, task_type, loss_type='MSE'):
     class_num = target_dict['events'].shape[-1]
 
     sed_loss = mixup_cross_entropy_loss(
-        output=output_dict['events'],
+        input_=output_dict['events'],
         target=target_dict['events']
     )
 
