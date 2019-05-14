@@ -18,13 +18,14 @@ class CRNN10(nn.Module):
         self.pool_size = pool_size
         self.interp_ratio = interp_ratio
         
-        self.conv_block1 = ConvBlock(in_channels=10, out_channels=64)
+        self.conv_block1 = ConvBlock(in_channels=10, out_channels=32)
+        self.conv_block_insert = ConvBlock(in_channels=32, out_channels=64)
         self.conv_block2 = ConvBlock(in_channels=64, out_channels=128)
         self.conv_block3 = ConvBlock(in_channels=128, out_channels=256)
         self.conv_block4 = ConvBlock(in_channels=256, out_channels=512)
 
         self.gru = nn.GRU(input_size=512, hidden_size=256, 
-            num_layers=1, batch_first=True, bidirectional=True)
+            num_layers=2, batch_first=True, bidirectional=True)
 
         self.event_fc = nn.Linear(512, class_num, bias=True)
         self.azimuth_fc = nn.Linear(512, class_num, bias=True)
@@ -43,6 +44,7 @@ class CRNN10(nn.Module):
         '''input: (batch_size, mic_channels, time_steps, mel_bins)'''
 
         x = self.conv_block1(x, self.pool_type, pool_size=self.pool_size)
+        x = self.conv_block_insert(x, self.pool_type, pool_size=self.pool_size)
         x = self.conv_block2(x, self.pool_type, pool_size=self.pool_size)
         x = self.conv_block3(x, self.pool_type, pool_size=self.pool_size)
         x = self.conv_block4(x, self.pool_type, pool_size=self.pool_size)
