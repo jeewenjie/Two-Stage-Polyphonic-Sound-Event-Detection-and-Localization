@@ -5,7 +5,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from models.model_utilities import ConvBlock, init_gru, init_layer, interpolate
+from models.model_utilities import ConvBlock, ConvBlock_1CNN, init_gru, init_layer, interpolate
 
 
 class CRNN10(nn.Module):
@@ -18,11 +18,12 @@ class CRNN10(nn.Module):
         self.pool_size = pool_size
         self.interp_ratio = interp_ratio
         
-        self.conv_block1 = ConvBlock(in_channels=10, out_channels=32)
-        self.conv_block_insert = ConvBlock(in_channels=32, out_channels=64)
-        self.conv_block2 = ConvBlock(in_channels=64, out_channels=128)
-        self.conv_block3 = ConvBlock(in_channels=128, out_channels=256)
-        self.conv_block4 = ConvBlock(in_channels=256, out_channels=512)
+        self.conv_block1 = ConvBlock(in_channels=10, out_channels=16)
+        self.conv_block2 = ConvBlock(in_channels=16, out_channels=32)
+        self.conv_block3 = ConvBlock(in_channels=32, out_channels=64)
+        self.conv_block4 = ConvBlock(in_channels=64, out_channels=128)
+        self.conv_block5 = ConvBlock(in_channels=128, out_channels=256)
+        self.conv_block6 = ConvBlock_1CNN(in_channels=256, out_channels=512)
 
         self.gru = nn.GRU(input_size=512, hidden_size=256, 
             num_layers=2, batch_first=True, bidirectional=True)
@@ -44,10 +45,11 @@ class CRNN10(nn.Module):
         '''input: (batch_size, mic_channels, time_steps, mel_bins)'''
 
         x = self.conv_block1(x, self.pool_type, pool_size=self.pool_size)
-        x = self.conv_block_insert(x, self.pool_type, pool_size=self.pool_size)
         x = self.conv_block2(x, self.pool_type, pool_size=self.pool_size)
         x = self.conv_block3(x, self.pool_type, pool_size=self.pool_size)
         x = self.conv_block4(x, self.pool_type, pool_size=self.pool_size)
+        x = self.conv_block5(x, self.pool_type, pool_size=self.pool_size)
+        x = self.conv_block6(x, self.pool_type, pool_size=self.pool_size)
         '''(batch_size, feature_maps, time_steps, mel_bins)'''
 
         if self.pool_type == 'avg':
@@ -97,6 +99,8 @@ class pretrained_CRNN10(CRNN10):
         self.conv_block2 = model.conv_block2
         self.conv_block3 = model.conv_block3
         self.conv_block4 = model.conv_block4
+        self.conv_block5 = model.conv_block5
+        self.conv_block6 = model.conv_block6
 
         init_gru(self.gru)
         init_layer(self.event_fc)
