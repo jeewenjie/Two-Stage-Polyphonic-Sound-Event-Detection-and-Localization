@@ -117,3 +117,38 @@ class ConvBlock(nn.Module):
             x = fractional_maxpool2d(x)
 
         return x
+
+class ConvBlock_1CNN(nn.Module):
+    def __init__(self, in_channels, out_channels, 
+                kernel_size=(3,3), stride=(1,1), padding=(1,1)):
+        
+        super().__init__()
+        
+        self.conv1 = nn.Conv2d(in_channels=in_channels, 
+                              out_channels=out_channels,
+                              kernel_size=kernel_size, stride=stride,
+                              padding=padding, bias=False)
+                              
+        self.bn1 = nn.BatchNorm2d(out_channels)
+
+        self.init_weights()
+        
+    def init_weights(self):
+        
+        init_layer(self.conv1)
+        init_layer(self.bn1)
+
+        
+    def forward(self, x, pool_type='avg', pool_size=(2, 2)):
+        
+        x = F.relu_(self.bn1(self.conv1(x)))
+
+        if pool_type == 'avg':
+            x = F.avg_pool2d(x, kernel_size=pool_size)
+        elif pool_type == 'max':
+            x = F.max_pool2d(x, kernel_size=pool_size)
+        elif pool_type == 'frac':
+            fractional_maxpool2d = nn.FractionalMaxPool2d(kernel_size=pool_size, output_ratio=1/np.sqrt(2))
+            x = fractional_maxpool2d(x)
+
+        return x
