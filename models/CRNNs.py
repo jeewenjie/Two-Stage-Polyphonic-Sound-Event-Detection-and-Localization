@@ -24,7 +24,7 @@ class CRNN10(nn.Module):
         self.conv_block4 = ConvBlock(in_channels=256, out_channels=512)
 
         self.gru = nn.GRU(input_size=512, hidden_size=256, 
-            num_layers=1, batch_first=True, bidirectional=True)
+            num_layers=2, batch_first=True, bidirectional=True)
 
         self.event_fc = nn.Linear(512, class_num, bias=True)
         self.azimuth_fc = nn.Linear(512, class_num, bias=True)
