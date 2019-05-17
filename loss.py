@@ -3,39 +3,17 @@ import pdb
 import torch
 import torch.nn.functional as F
 
-import numpy as np
-def mixup_cross_entropy_loss(input_, target, size_average=True):
-
-    #assert input.size() == target.size()
-    #assert isinstance(input, Variable) and isinstance(target, Variable)
-    N = min(input_.shape[1], target.shape[1])
-    input_ = input_[:,0:N,:]
-    target = target[:,0:N,:]
-    return - (input_.log_softmax(dim=-1) * target).sum(dim=-1).mean()
-
-
-def onehot(targets, num_classes):
-
-    #assert isinstance(targets, torch.LongTensor)
-    return torch.zeros(targets.shape[0], num_classes).scatter_(1, targets.view(-1, 1), 1)
-
-
-def mixup(inputs, targets, num_classes, alpha=2):
-
-    s = inputs.shape[0]
-    gamma = np.random.beta(alpha, alpha)
-    perm = torch.randperm(s)
-    perm_input = inputs[perm]
-    perm_target = targets[perm]
-
-    return  inputs.mul_(gamma).add_(1 - gamma, perm_input), targets.mul_(gamma).add_(1 - gamma, perm_target)
-
 
 def binary_cross_entropy(output, target):
     
     # Align the time_steps of output and target
     N = min(output.shape[1], target.shape[1])
-
+    #print(output.shape) # torch.Size([1,88224,11])
+    #print(target.shape) # torch.Size([1,88224,11])
+    #print(N)
+    #print(output[:, 0: N, :].numel())
+    #print(target[:, 0: N, :].numel())
+    #exit()
     out = F.binary_cross_entropy(
         output[:, 0: N, :],
         target[:, 0: N, :]
@@ -79,8 +57,8 @@ def hybrid_regr_loss(output_dict, target_dict, task_type, loss_type='MSE'):
 
     class_num = target_dict['events'].shape[-1]
 
-    sed_loss = mixup_cross_entropy_loss(
-        input_=output_dict['events'],
+    sed_loss = binary_cross_entropy(
+        output=output_dict['events'],
         target=target_dict['events']
     )
 

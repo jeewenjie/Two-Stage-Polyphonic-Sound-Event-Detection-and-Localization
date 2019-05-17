@@ -19,7 +19,7 @@ from tqdm import tqdm
 
 import evaluation
 import models
-from loss import hybrid_regr_loss, mixup
+from loss import hybrid_regr_loss
 from torchsummary import summary
 from utils.data_generator import DataGenerator
 from utils.utilities import (create_logging, doa_labels, event_labels,
@@ -161,20 +161,16 @@ def train(args, data_generator, model, optimizer, logging):
         if batch_idx % lr_interval == 0 and batch_idx > 30000:
             for param_group in optimizer.param_groups:
                 param_group['lr'] *= 0.9
-        
-        
+
         batch_x = to_torch(batch_x, args.cuda)
         batch_y_dict = {
             'events':   to_torch(batch_y_dict['events'], args.cuda),
             'doas':  to_torch(batch_y_dict['doas'], args.cuda)
         }
-        #print(batch_y_dict['events'].shape) #32,200,11
-        batch_x ,batch_y_dict['events'] = mixup(batch_x,batch_y_dict['events'], num_classes = 11)
 
         # Forward
         model.train()
         output = model(batch_x)
-        #print(output['events'].shape) #32,192,11
         
         # Loss
         seld_loss, _, _ = hybrid_regr_loss(output, batch_y_dict, args.task_type, loss_type=loss_type)
@@ -301,7 +297,7 @@ def inference_all_fold(args):
         'model_' + args.model  + '_{}'.format(args.audio_type) + \
             '_seed_{}'.format(args.seed), 'test')    
 
-    gt_meta_dir = '/vol/vssp/AP_datasets/audio/dcase2019/task3/dataset_root/metadata_dev/'
+    gt_meta_dir = '/media/audiodsp/ExternalVolume/dcase_2019/metadata_dev/'
     sed_scores, doa_er_metric, seld_metric = evaluation.calculate_SELD_metrics(gt_meta_dir, test_submissions_dir, score_type='all')
 
     loss = [0.0, 0.0, 0.0]
