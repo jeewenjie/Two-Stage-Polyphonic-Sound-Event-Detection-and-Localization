@@ -155,8 +155,15 @@ class DataGenerator(object):
         logging.info('Cross-Validation audios number: {}\n'.format(len(self.validation_fn_list)))
         logging.info('Testing audios number: {}\n'.format(len(self.test_fn_list)))        
 
-        self.epoch_size = np.ceil(len(self.train_segmented_indexes)/self.batch_size)
+        self.epoch_size = np.ceil(len(self.train_segmented_indexes)/self.batch_size)       
         
+        #------------------------------------------
+        # MIXUP
+        #-----------------------------------------
+        self.sample_num = 200
+        self.alpha = 0.2
+        self.shuffle = True
+
     def load_hdf5(self, hdf5_path):
         '''
         Load hdf5. 
@@ -210,7 +217,7 @@ class DataGenerator(object):
     def generate_train(self):
         """Generate batch data for training.
 
-        Returns:
+        Returns:                              time(h)   freq(w)
           batch_x: (batch_size, mic_channels, seq_len, freq_bins)
           batch_y_dict: {'events': target_events, 'elevation': target_elevation,
                          'azimuth': target_azimuth, 'distance': target_distance}
@@ -223,29 +230,72 @@ class DataGenerator(object):
         pointer = 0
 
         while True:
-            
+
             if pointer >= len_x:
                 pointer = 0
                 self.train_random_state.shuffle(indexes)
             
-            if pointer + self.batch_size <= len_x:
-                batch_indexes = indexes[pointer: pointer + self.batch_size]
+            #if pointer + self.batch_size <= len_x:
+            if pointer + self.batch_size*2 <= len_x:
+                #batch_indexes = indexes[pointer: pointer + self.batch_size]
+                batch_indexes = indexes[pointer: pointer + self.batch_size*2]
             else:
-                batch_indexes = np.hstack((indexes[pointer: ], indexes[: self.batch_size - (len_x - pointer)]))
+                #batch_indexes = np.hstack((indexes[pointer: ], indexes[: self.batch_size - (len_x - pointer)]))
+                batch_indexes = np.hstack((indexes[pointer: ], indexes[: self.batch_size*2 - (len_x - pointer)]))
 
-            pointer += self.batch_size
+            #pointer += self.batch_size
+            pointer += self.batch_size*2
 
             data_idxes = batch_indexes[:, None] + np.arange(self.chunklen)
+            #print(data_idxes)
+            #print(data_idxes.shape) # (32,200)
+            #print(self.train_features.shape) # (10, 1768543, 96)
+
             batch_x = self.train_features[:, data_idxes]
+            #print(batch_x.shape) # (10,32,200,96)
             batch_x = batch_x.transpose(1, 0, 2, 3)
+            #print(batch_x.shape) # (32,10,200,96)
+            #exit()
             batch_x = self.transform(batch_x)
             # batch_x = batch_x[:,:4]
             
-            batch_y_dict = {'events': self.train_target_events[data_idxes],
-                            'doas': self.train_target_doas[data_idxes],
-                            'distances': self.train_target_dists[data_idxes]}
+            #batch_y_dict = {'events': self.train_target_events[data_idxes],
+            #                'doas': self.train_target_doas[data_idxes],
+            #                'distances': self.train_target_dists[data_idxes]}
             
-            yield batch_x, batch_y_dict
+            #----------------------------------------------------------------
+            #                           MIXUP
+            #----------------------------------------------------------------
+            _, c, h, w = batch_x.shape
+            l = np.random.beta(0.2,0.2,self.batch_size)
+            X_l = l.reshape(self.batch_size,1,1,1)
+            y_l = l.reshape(self.batch_size,1,1)
+
+            X1 = batch_x[:self.batch_size]
+            X2 = batch_x[self.batch_size:]
+            
+            X = X1 * X_l + X2 * (1 - X_l)
+            
+            y1_events = self.train_target_events[data_idxes[:self.batch_size]]
+            y2_events = self.train_target_events[data_idxes[self.batch_size:]]
+
+            y1_doas = self.train_target_doas[data_idxes[:self.batch_size]]
+            y2_doas = self.train_target_doas[data_idxes[self.batch_size:]]
+
+            y1_dists = self.train_target_dists[data_idxes[:self.batch_size]]
+            y2_dists = self.train_target_dists[data_idxes[self.batch_size:]]
+            
+            y_events = y1_events * y_l + y2_events * (1 - y_l)
+
+            y_doas = y1_doas * y_l + y2_doas * (1 - y_l)
+
+            y_dists = y1_dists * y_l + y2_dists * (1 - y_l)
+
+            batch_y_dict = {'events': y_events,
+                            'doas': y_doas,
+                            'distances': y_dists}
+
+            yield X, batch_y_dict
 
     def generate_test(self, data_type, max_audio_num=None):
         """
