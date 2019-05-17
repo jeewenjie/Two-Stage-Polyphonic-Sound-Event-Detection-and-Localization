@@ -22,7 +22,7 @@ class CRNN10(nn.Module):
         self.conv_block2 = ConvBlock(in_channels=32, out_channels=64)
         self.conv_block3 = ConvBlock(in_channels=64, out_channels=128)
         self.conv_block4 = ConvBlock(in_channels=128, out_channels=256)
-        self.conv_block5 = ConvBlock_1CNN(in_channels=256, out_channels=512)
+        self.conv_block5 = ConvBlock(in_channels=256, out_channels=512)
 
         self.gru = nn.GRU(input_size=512, hidden_size=256, 
             num_layers=2, batch_first=True, bidirectional=True)
