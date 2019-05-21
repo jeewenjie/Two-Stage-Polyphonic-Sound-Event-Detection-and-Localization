@@ -297,7 +297,7 @@ def inference_all_fold(args):
         'model_' + args.model  + '_{}'.format(args.audio_type) + \
             '_seed_{}'.format(args.seed), 'test')    
 
-    gt_meta_dir = '/vol/vssp/AP_datasets/audio/dcase2019/task3/dataset_root/metadata_dev/'
+    gt_meta_dir = '/home/ubuntu/Project/wenjie/seld-dcase2019-master/base_data/metadata_dev/'
     sed_scores, doa_er_metric, seld_metric = evaluation.calculate_SELD_metrics(gt_meta_dir, test_submissions_dir, score_type='all')
 
     loss = [0.0, 0.0, 0.0]
