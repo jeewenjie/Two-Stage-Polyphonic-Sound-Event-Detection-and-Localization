@@ -18,7 +18,7 @@ class CRNN10(nn.Module):
         self.pool_size = pool_size
         self.interp_ratio = interp_ratio
         
-        self.conv_block1 = ConvBlock(in_channels=10, out_channels=32)
+        self.conv_block1 = ConvBlock(in_channels=10, out_channels=64)
         #self.conv_block2 = ConvBlock(in_channels=32, out_channels=64)
         self.conv_block3 = ConvBlock(in_channels=64, out_channels=128)
         self.conv_block4 = ConvBlock(in_channels=128, out_channels=256)
