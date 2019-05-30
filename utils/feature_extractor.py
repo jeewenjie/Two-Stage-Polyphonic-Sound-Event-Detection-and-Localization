@@ -14,6 +14,7 @@ from scipy import signal
 from tqdm import tqdm
 
 from utilities import calculate_scalar, event_labels, lb_to_ix
+from bark_spectrogram import fft2barkmx
 
 fs = 32000
 nfft = 1024
@@ -30,10 +31,10 @@ class LogMelExtractor():
         self.nfft = nfft
         self.hopsize = hopsize
         self.window = window
-        self.melW = librosa.filters.mel(sr=fs,
-                                        n_fft=nfft,
-                                        n_mels=mel_bins,
-                                        fmin=fmin)
+        self.melW = libros.filters.mel(fs=fs, # 32000
+                                        n_fft=nfft, # 1024
+                                        n_mels=mel_bins, # 96
+                                        fmin=fmin) # 50
 
     def transform(self, audio):
 
@@ -64,10 +65,10 @@ class LogMelGccExtractor():
         self.nfft = nfft
         self.hopsize = hopsize
         self.window = window
-        self.melW = librosa.filters.mel(sr=fs,
-                                        n_fft=nfft,
-                                        n_mels=mel_bins,
-                                        fmin=fmin)
+        self.melW = fft2barkmx(n_fft= nfft,
+                               fs = fs,
+                               nfilts = mel_bins,
+                               )
 
     def logmel(self, sig):
 
@@ -225,8 +226,8 @@ def extract_features(args):
                 target_azi = df['azi'].values
                 target_dist = df['dist'].values
 
-            elif args.data_type == 'eval':
-                raise Exception('Leave for further editing')
+            #elif args.data_type == 'eval':
+            #    raise Exception('Leave for further editing')
 
             hdf5_path = os.path.join(hdf5_dir, fn + '.h5')
             with h5py.File(hdf5_path, 'w') as hf:
